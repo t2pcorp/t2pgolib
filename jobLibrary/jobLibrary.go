@@ -1,11 +1,18 @@
 package jobLibrary
 
+import (
+    "io/ioutil"
+    "bytes"
+    "fmt"
+    "net/http"
+    "encoding/json"
+	"errors"
+)
+
 type JobLibrary struct {
 	JobConfig               JobConfig
 	JobExecuteInfo          JobExecuteInfo
 	env                     string
-	JobConfigHasChange      JobConfigHasChange
-	JobExecuteInfoHasChange JobExecuteInfoHasChange
 }
 
 type JobConfig struct {
@@ -34,33 +41,12 @@ type Notification struct {
 	Sms  string
 	Call string
 	Mail string
+	hasSet bool
 }
 
 type JobExecuteInfo struct {
 	Success bool
 	Error   string
-}
-
-type JobConfigHasChange struct {
-	Domain            bool
-	JobID             bool
-	Name              bool
-	PeriodType        bool
-	PeriodValue       bool
-	ScheduleTime      bool
-	ExecuteDuration   bool
-	TimeZone          bool
-	AdditionCondition bool
-	SkipCheck         bool
-	Notification      bool
-	NotiFrequency     bool
-	ArchiveLogUnit    bool
-	ArchiveLogValue   bool
-}
-
-type JobExecuteInfoHasChange struct {
-	Success bool
-	Error   bool
 }
 
 func (job *JobLibrary) Init() *JobLibrary {
@@ -188,18 +174,22 @@ func (j *JobLibrary) SetSkipCheck(skip string) {
 
 func (j *JobLibrary) SetLINENotification(token string) {
 	j.JobConfig.Notification.Line = token
+	j.JobConfig.Notification.hasSet = true
 }
 
 func (j *JobLibrary) SetSMSNotification(phoneNumber string) {
 	j.JobConfig.Notification.Sms = phoneNumber
+	j.JobConfig.Notification.hasSet = true
 }
 
 func (j *JobLibrary) SetPhoneNotification(phoneNumber string) {
 	j.JobConfig.Notification.Call = phoneNumber
+	j.JobConfig.Notification.hasSet = true
 }
 
 func (j *JobLibrary) SetMailNotification(mail string) {
 	j.JobConfig.Notification.Mail = mail
+	j.JobConfig.Notification.hasSet = true
 }
 
 func (j *JobLibrary) SetNotiFrequency(frequency string) {
@@ -222,6 +212,49 @@ func (j *JobLibrary) SetErrorMessage(message string) {
 	j.JobExecuteInfo.Error = message
 }
 
+func (j *JobLibrary) CheckField() error{
+    if j.JobConfig.Domain == "" {
+        return errors.New("field Domain need to assigned.")
+    }
+    if j.JobConfig.JobID == "" {
+        return errors.New("field JobID need to assigned.")
+    }
+    if j.JobConfig.Name == "" {
+        return errors.New("field Name need to assigned.")
+    }
+    if j.JobConfig.PeriodType == "" {
+        return errors.New("field PeriodType need to assigned.")
+    }
+    if j.JobConfig.PeriodValue == "" {
+        return errors.New("field PeriodValue need to assigned.")
+    }
+    if j.JobConfig.ScheduleTime == "" {
+        return errors.New("field ScheduleTime need to assigned.")
+    }
+    if j.JobConfig.ExecuteDuration == "" {
+        return errors.New("field ExecuteDuration need to assigned.")
+    }
+    if j.JobConfig.TimeZone == "" {
+        return errors.New("field TimeZone need to assigned.")
+    }
+    if j.JobConfig.SkipCheck == "" {
+        return errors.New("field SkipCheck need to assigned.")
+    }
+    if j.JobConfig.Notification.hasSet == false {
+        return errors.New("field Notification need to assigned.")
+    }
+    if j.JobConfig.NotiFrequency == "" {
+        return errors.New("field NotiFrequency need to assigned.")
+    }
+    if j.JobConfig.ArchiveLogUnit == "" {
+        return errors.New("field ArchiveLogUnit need to assigned.")
+    }
+    if j.JobConfig.ArchiveLogValue == "" {
+        return errors.New("field ArchiveLogValue need to assigned.")
+    }
+    return nil
+}
+
 func GetEnvUrl(env string) string {
 	url := "https://job-api.t2p.co.th"
 	if env == "LOCAL" {
@@ -239,15 +272,118 @@ func GetEnvUrl(env string) string {
 	return url
 }
 
-func GetToken() string {
-	config := "config"
-	return config
+func GetToken() string{
+    url := "http://localhost:7005/api/login/"
+
+	var jsonData = []byte(`{
+		"email": "test@example.com",
+		"password": "123456789"
+	}`)
+	request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		panic(err)
+	}
+	defer response.Body.Close()
+
+	body, _ := ioutil.ReadAll(response.Body)
+	var login map[string]interface{}
+    json.Unmarshal([]byte(body), &login)
+	return login["token"].(string)
 }
 
-func (j *JobLibrary) GetJobActiveStatus() (string, string, JobLibrary) {
-	domain := j.JobConfig.Domain
-	jobID := j.JobConfig.JobID
+func (j *JobLibrary) GetJobActiveStatus() string{
+	err := j.CheckField()
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+    jsonData, err := json.Marshal(j)
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+	
+	bearer := "Bearer " + GetToken()
+	env := "LOCAL"
+	urlEnv := GetEnvUrl(env)
+    url := urlEnv + "/api/Job/getJobStatus/" + j.JobConfig.Domain + "/" + j.JobConfig.JobID
+    request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    request.Header.Set("Authorization", bearer)
+	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
-	config := JobLibrary{JobConfig: j.JobConfig, JobExecuteInfo: j.JobExecuteInfo}
-	return domain, jobID, config
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		panic(err)
+	}
+	defer response.Body.Close()
+
+	data, _ := ioutil.ReadAll(response.Body)
+	var job map[string]interface{}
+    json.Unmarshal([]byte(data), &job)
+    return job["getJobStatus"].(string)
+}
+
+func (j *JobLibrary) UpdateJobStatus(msg ...string) {
+	err := j.CheckField()
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+	if len(msg) > 0 {
+		j.SetSuccess(false)
+		j.SetErrorMessage(msg[0])
+	}
+    jsonData, err := json.Marshal(j)
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+
+	bearer := "Bearer " + GetToken()
+	env := "LOCAL"
+	urlEnv := GetEnvUrl(env)
+    url := urlEnv + "/api/Job/updateJobStatus"
+    request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    request.Header.Set("Authorization", bearer)
+	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		panic(err)
+	}
+
+	data, _ := ioutil.ReadAll(response.Body)
+	var job map[string]interface{}
+    json.Unmarshal([]byte(data), &job)
+	defer response.Body.Close()
+}
+
+func (j *JobLibrary) UpdateJobRunningStatus() {
+	err := j.CheckField()
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+	var jsonData = []byte(`{
+		"status": "Y"
+	}`)
+    if err != nil {
+        fmt.Println(err.Error())
+    }
+
+	bearer := "Bearer " + GetToken()
+	env := "LOCAL"
+	urlEnv := GetEnvUrl(env)
+    url := urlEnv + "/api/Job/updateJobRunningStatus/" + j.JobConfig.Domain + "/" + j.JobConfig.JobID
+    request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+    request.Header.Set("Authorization", bearer)
+	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		panic(err)
+	}
+	defer response.Body.Close()
 }
