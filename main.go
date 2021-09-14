@@ -1,8 +1,7 @@
 package main
 
 import (
-    jobLib "jobLib/jobLibrary"
-    // "fmt"
+    jobLib "github.com/t2pcorp/t2pgolib.git/jobLibrary"
 )
 
 func main() {
@@ -22,5 +21,4 @@ func main() {
     job.SetArchiveLogValue("1")
 
     job.UpdateJobRunningStatus()
-    // fmt.Println(job.CheckField())
 }
