@@ -8,6 +8,9 @@ import (
     "encoding/json"
 	"errors"
 	// "time"
+    // "github.com/aws/aws-sdk-go/aws"
+    // "github.com/aws/aws-sdk-go/aws/session"
+    // "github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
 type JobLibrary struct {
@@ -389,41 +392,41 @@ func (j *JobLibrary) UpdateJobRunningStatus() {
 	defer response.Body.Close()
 }
 
-// func (j *JobLibrary) UpdateJobDashboard(value float64, DimensionName string="default", Matric string="Monitor", customNamespace string="default") {
-// 	namespace := j.JobConfig.Domain + ':' + j.JobConfig.JobID
-// 	if (customNamespace != "default") {
-// 		namespace = customNamespace
-// 	}
-// 	now := time.Now()
-// 	metricData := []*cloudwatch.MetricDatum{
-//         &cloudwatch.MetricDatum{
-//             MetricName: aws.String(Matric),
-// 			TimeStamp:	now.Format(time.Stamp),
-//             Dimensions: []*cloudwatch.Dimension{
-//                 &cloudwatch.Dimension{
-//                     Name:  aws.String(Matric),
-//                     Value: aws.String(DimensionName),
-//                 },
-//             },
-//             Unit:       aws.String("Count"),
-//             Value:      aws.Float64(value),
-//         },
-// 	}
-// 	cloudWatchClient := &aws.Config{
-// 		Profile: aws.String("default"),
-// 		Region: aws.String("ap-southeast-1"),
-// 		Version: aws.String("2010-08-01"),
-// 	}
-// 	return PutMetricData(namespace, metricData)
-// }
+func (j *JobLibrary) UpdateJobDashboard(value float64, DimensionName string="default", Matric string="Monitor", customNamespace string="default") {
+	namespace := j.JobConfig.Domain + ':' + j.JobConfig.JobID
+	if (customNamespace != "default") {
+		namespace = customNamespace
+	}
+	now := time.Now()
+	metricData := []*cloudwatch.MetricDatum{
+        &cloudwatch.MetricDatum{
+            MetricName: aws.String(Matric),
+			TimeStamp:	now.Format(time.Stamp),
+            Dimensions: []*cloudwatch.Dimension{
+                &cloudwatch.Dimension{
+                    Name:  aws.String(Matric),
+                    Value: aws.String(DimensionName),
+                },
+            },
+            Unit:       aws.String("Count"),
+            Value:      aws.Float64(value),
+        },
+	}
+	cloudWatchClient := &aws.Config{
+		Profile: aws.String("default"),
+		Region: aws.String("ap-southeast-1"),
+		Version: aws.String("2010-08-01"),
+	}
+	return PutMetricData(namespace, metricData)
+}
 
-// func (j *JobLibrary) PutMetricData(namespace string, metricData string) {
-// 	_, err := svc.PutMetricData(&cloudwatch.PutMetricDataInput{
-// 		Namespace: aws.String(namespace),
-// 		MetricData: metricData,
-// 	}
-// 	if err != nil {
-// 		fmt.Println("Error adding metrics:", err.Error())
-// 		return
-// 	}
-// }
+func (j *JobLibrary) PutMetricData(namespace string, metricData string) {
+	_, err := svc.PutMetricData(&cloudwatch.PutMetricDataInput{
+		Namespace: aws.String(namespace),
+		MetricData: metricData,
+	}
+	if err != nil {
+		fmt.Println("Error adding metrics:", err.Error())
+		return
+	}
+}
