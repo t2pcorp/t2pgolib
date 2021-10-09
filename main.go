@@ -1,13 +1,14 @@
 package main
 
 import (
-    jobLib "github.com/t2pcorp/t2pgolib.git/jobLibrary"
+    // "fmt"
+    jobLib "github.com/t2pcorp/t2pgolib/jobLibrary"
 )
 
 func main() {
     job := new(jobLib.JobLibrary)
     job.Init()
-    job.SetDomain("Test_UpdateJobStatus")
+    job.SetDomain("EXAMPLE")
     job.SetJobID("Test_UpdateJobStatus")
     job.SetName("Test_UpdateJobStatus")
     job.SetPeriodTypeMin()
@@ -20,5 +21,21 @@ func main() {
     job.SetArchiveLogUnit("D")
     job.SetArchiveLogValue("1")
 
-    job.UpdateJobRunningStatus()
+    status:=job.GetJobActiveStatus()
+    if status != "N" {
+        /*
+
+
+
+            TODO:: Do Job Process Here
+
+
+
+            
+        */
+        job.UpdateJobStatus()  
+        job.UpdateJobDashboard(10, jobLib.DashboardMatricKey{DimensionName: "default",Matric: "Monitor", CustomNamespace:"default"})
+    } else {
+        job.UpdateJobRunningStatus()
+    }
 }

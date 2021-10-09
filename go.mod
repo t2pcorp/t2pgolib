@@ -1,8 +1,9 @@
-module github.com/t2pcorp/t2pgolib.git
+module github.com/t2pcorp/t2pgolib
 
 go 1.16
 
 require (
+	github.com/aws/aws-sdk-go v1.40.59
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/stretchr/testify v1.7.0

@@ -7,12 +7,24 @@ import (
     "net/http"
     "encoding/json"
 	"errors"
-	// "time"
-    // "github.com/aws/aws-sdk-go/aws"
-    // "github.com/aws/aws-sdk-go/aws/session"
-    // "github.com/aws/aws-sdk-go/service/cloudwatch"
+	"time"
+    "github.com/aws/aws-sdk-go/aws"
+    // "github.com/aws/aws-sdk-go/aws/credentials"
+    "github.com/aws/aws-sdk-go/aws/session"
+    "github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
+const (
+    AccessKeyId     = "XXXXXXXXXXXXXXXXXX"
+    SecretAccessKey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+    Region          = "ap-southeast-1"
+)
+
+type DashboardMatricKey struct {
+	DimensionName string `default`
+	Matric	string `Monitor`
+	CustomNamespace string `default`// if use this will ignore DimensionName and MatricName
+}
 type JobLibrary struct {
 	JobConfig               JobConfig
 	JobExecuteInfo          JobExecuteInfo
@@ -288,10 +300,10 @@ func GetToken() string{
 
 	client := &http.Client{}
 	response, err := client.Do(request)
+	defer response.Body.Close()
 	if err != nil {
 		panic(err)
 	}
-	defer response.Body.Close()
 
 	body, _ := ioutil.ReadAll(response.Body)
 	var login map[string]interface{}
@@ -319,10 +331,10 @@ func (j *JobLibrary) GetJobActiveStatus() string{
 
 	client := &http.Client{}
 	response, err := client.Do(request)
+	defer response.Body.Close()
 	if err != nil {
 		panic(err)
 	}
-	defer response.Body.Close()
 
 	data, _ := ioutil.ReadAll(response.Body)
 	var job map[string]interface{}
@@ -354,6 +366,7 @@ func (j *JobLibrary) UpdateJobStatus(msg ...string) {
 
 	client := &http.Client{}
 	response, err := client.Do(request)
+	defer response.Body.Close()
 	if err != nil {
 		panic(err)
 	}
@@ -361,7 +374,6 @@ func (j *JobLibrary) UpdateJobStatus(msg ...string) {
 	data, _ := ioutil.ReadAll(response.Body)
 	var job map[string]interface{}
     json.Unmarshal([]byte(data), &job)
-	defer response.Body.Close()
 }
 
 func (j *JobLibrary) UpdateJobRunningStatus() {
@@ -386,22 +398,25 @@ func (j *JobLibrary) UpdateJobRunningStatus() {
 
 	client := &http.Client{}
 	response, err := client.Do(request)
+	defer response.Body.Close()
 	if err != nil {
 		panic(err)
 	}
-	defer response.Body.Close()
 }
 
-func (j *JobLibrary) UpdateJobDashboard(value float64, DimensionName string="default", Matric string="Monitor", customNamespace string="default") {
-	namespace := j.JobConfig.Domain + ':' + j.JobConfig.JobID
+func (j *JobLibrary) UpdateJobDashboard(value float64, dashboardKey DashboardMatricKey) {
+	DimensionName := dashboardKey.DimensionName
+	Matric := dashboardKey.Matric
+	customNamespace := dashboardKey.CustomNamespace
+	namespace := j.JobConfig.Domain + `:` + j.JobConfig.JobID
 	if (customNamespace != "default") {
 		namespace = customNamespace
-	}
+	}	
 	now := time.Now()
 	metricData := []*cloudwatch.MetricDatum{
         &cloudwatch.MetricDatum{
             MetricName: aws.String(Matric),
-			TimeStamp:	now.Format(time.Stamp),
+			Timestamp:	&now,
             Dimensions: []*cloudwatch.Dimension{
                 &cloudwatch.Dimension{
                     Name:  aws.String(Matric),
@@ -412,21 +427,30 @@ func (j *JobLibrary) UpdateJobDashboard(value float64, DimensionName string="def
             Value:      aws.Float64(value),
         },
 	}
-	cloudWatchClient := &aws.Config{
-		Profile: aws.String("default"),
-		Region: aws.String("ap-southeast-1"),
-		Version: aws.String("2010-08-01"),
+	
+	
+	matricInput := cloudwatch.PutMetricDataInput{
+		MetricData: metricData,
+		Namespace: aws.String(namespace),
 	}
-	return PutMetricData(namespace, metricData)
+	j.PutMetricData(matricInput)
 }
 
-func (j *JobLibrary) PutMetricData(namespace string, metricData string) {
-	_, err := svc.PutMetricData(&cloudwatch.PutMetricDataInput{
-		Namespace: aws.String(namespace),
-		MetricData: metricData,
+func (j *JobLibrary) PutMetricData(matricInput cloudwatch.PutMetricDataInput) {
+	// SET in ENV
+	// $ export AWS_ACCESS_KEY_ID=YOUR_AKID
+	// $ export AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY
+	config := &aws.Config{
+		Region: aws.String("ap-southeast-1"),
 	}
+	mySession := session.Must(session.NewSession(config))
+
+	// Create a CloudWatch client from just a session.
+	svc := cloudwatch.New(mySession)
+	rs, err := svc.PutMetricData(&matricInput)
 	if err != nil {
 		fmt.Println("Error adding metrics:", err.Error())
 		return
 	}
+	fmt.Println("Put Matric Result: ",rs)
 }
