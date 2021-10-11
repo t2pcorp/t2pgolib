@@ -15,11 +15,10 @@ import (
 	"gitlab.t2p.co.th/central-library/t2plib/config"
 )
 
-const (
-    AccessKeyId     = "XXXXXXXXXXXXXXXXXX"
-    SecretAccessKey = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-    Region          = "ap-southeast-1"
-)
+type credentials struct {
+	Email string 
+	Password string
+}
 
 type DashboardMatricKey struct {
 	DimensionName string `default`
@@ -29,6 +28,7 @@ type DashboardMatricKey struct {
 type JobLibrary struct {
 	JobConfig               JobConfig
 	JobExecuteInfo          JobExecuteInfo
+	JobUserPassword 		credentials
 	env                     string
 }
 
@@ -65,6 +65,8 @@ type JobExecuteInfo struct {
 	Success bool
 	Error   string
 }
+
+var user = credentials{}
 
 func (job *JobLibrary) Init() *JobLibrary {
 	job.JobConfig.TimeZone = "Asia/Bangkok"
@@ -229,6 +231,14 @@ func (j *JobLibrary) SetErrorMessage(message string) {
 	j.JobExecuteInfo.Error = message
 }
 
+func (j *JobLibrary) SetEmail(email string) {
+	j.JobUserPassword.Email = email
+}
+
+func (j *JobLibrary) SetPassword(password string) {
+	j.JobUserPassword.Password = password
+}
+
 func (j *JobLibrary) CheckField() error{
     if j.JobConfig.Domain == "" {
         return errors.New("field Domain need to assigned.")
@@ -289,14 +299,14 @@ func GetEnvUrl(env string) string {
 	return url
 }
 
-func GetToken() string{
-    url := "http://localhost:7005/api/login/"
-
-	var jsonData = []byte(`{
-		"email": "test@example.com",
-		"password": "123456789"
-	}`)
-	request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+func GetToken(job *JobLibrary) string{
+	env := config.EnvName
+	urlEnv := GetEnvUrl(env)
+	var jsonData = []byte(fmt.Sprintf(`{
+		"email": "%s",
+		"password": "%s"
+	}`,job.JobUserPassword.Email,job.JobUserPassword.Password))
+	request, err := http.NewRequest("POST", urlEnv+`/api/login`, bytes.NewBuffer(jsonData))
 	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 
 	client := &http.Client{}
@@ -322,8 +332,8 @@ func (j *JobLibrary) GetJobActiveStatus() string{
         fmt.Println(err.Error())
     }
 	
-	bearer := "Bearer " + GetToken()
-	env := "LOCAL"
+	bearer := "Bearer " + GetToken(j)
+	env := config.EnvName
 	urlEnv := GetEnvUrl(env)
     url := urlEnv + "/api/Job/getJobStatus/" + j.JobConfig.Domain + "/" + j.JobConfig.JobID
     request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
@@ -357,8 +367,8 @@ func (j *JobLibrary) UpdateJobStatus(msg ...string) {
         fmt.Println(err.Error())
     }
 
-	bearer := "Bearer " + GetToken()
-	env := "LOCAL"
+	bearer := "Bearer " + GetToken(j)
+	env := config.EnvName
 	urlEnv := GetEnvUrl(env)
     url := urlEnv + "/api/Job/updateJobStatus"
     request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
@@ -389,7 +399,7 @@ func (j *JobLibrary) UpdateJobRunningStatus() {
         fmt.Println(err.Error())
     }
 
-	bearer := "Bearer " + GetToken()
+	bearer := "Bearer " + GetToken(j)
 	env := config.EnvName
 	urlEnv := GetEnvUrl(env)
     url := urlEnv + "/api/Job/updateJobRunningStatus/" + j.JobConfig.Domain + "/" + j.JobConfig.JobID

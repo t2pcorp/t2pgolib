@@ -8,6 +8,9 @@ import (
 func main() {
     job := new(jobLib.JobLibrary)
     job.Init()
+
+    job.SetEmail("test@example.com")
+    job.SetPassword("123456789")
     job.SetDomain("EXAMPLE")
     job.SetJobID("Test_UpdateJobStatus")
     job.SetName("Test_UpdateJobStatus")
