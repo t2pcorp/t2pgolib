@@ -12,6 +12,7 @@ import (
     // "github.com/aws/aws-sdk-go/aws/credentials"
     "github.com/aws/aws-sdk-go/aws/session"
     "github.com/aws/aws-sdk-go/service/cloudwatch"
+	"gitlab.t2p.co.th/central-library/t2plib/config"
 )
 
 const (
@@ -389,7 +390,7 @@ func (j *JobLibrary) UpdateJobRunningStatus() {
     }
 
 	bearer := "Bearer " + GetToken()
-	env := "LOCAL"
+	env := config.EnvName
 	urlEnv := GetEnvUrl(env)
     url := urlEnv + "/api/Job/updateJobRunningStatus/" + j.JobConfig.Domain + "/" + j.JobConfig.JobID
     request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
