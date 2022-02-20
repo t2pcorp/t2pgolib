@@ -334,7 +334,7 @@ func (j *JobLibrary) GetJobActiveStatus() string{
     }
 	
 	bearer := "Bearer " + GetToken(j)
-	env := job.Env
+	env := j.Env
 	urlEnv := GetEnvUrl(env)
     url := urlEnv + "/api/Job/getJobStatus/" + j.JobConfig.Domain + "/" + j.JobConfig.JobID
     request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
@@ -369,7 +369,7 @@ func (j *JobLibrary) UpdateJobStatus(msg ...string) {
     }
 
 	bearer := "Bearer " + GetToken(j)
-	env := job.Env
+	env := j.Env
 	urlEnv := GetEnvUrl(env)
     url := urlEnv + "/api/Job/updateJobStatus"
     request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
@@ -401,7 +401,7 @@ func (j *JobLibrary) UpdateJobRunningStatus() {
     }
 
 	bearer := "Bearer " + GetToken(j)
-	env := job.Env
+	env := j.Env
 	urlEnv := GetEnvUrl(env)
     url := urlEnv + "/api/Job/updateJobRunningStatus/" + j.JobConfig.Domain + "/" + j.JobConfig.JobID
     request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
