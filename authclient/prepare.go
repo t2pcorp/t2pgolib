@@ -308,3 +308,23 @@ func makeResponseEncryptData(code int, message string, data interface{}) string 
 
 	return string(b)
 }
+
+func GenerateHMac(message string, key string) (string, error) {
+	ck, err := extractKey(key)
+	if err != nil {
+		return "", err
+	}
+	return hashHMAC(message, ck.hmacKey)
+}
+
+func VerifyHMac(message string, hMac string, key string) (bool, error) {
+	ck, err := extractKey(key)
+	if err != nil {
+		return false, err
+	}
+	newHMac, err := hashHMAC(message, ck.hmacKey)
+	if err != nil {
+		return false, err
+	}
+	return newHMac == hMac , nil
+}

@@ -12,6 +12,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func Test_Hmac(t *testing.T) {
+	
+	plainText := `This is plain Text {"Test":"Encrypt"} ทดสอบ`
+	hmac,err := GenerateHMac(plainText, clientKeyStr003)
+	fmt.Println("Hmac: ", hmac, err)
+
+	verify,err := VerifyHMac(plainText, hmac, clientKeyStr003)
+	fmt.Println("Verify: ", verify, err)
+
+	if !assert.Equal(t, verify, true) {
+		panic("verify Failed !!!!")
+	}
+}
+
 func Test_Encrypt_Decrypt(t *testing.T) {
 	plainText := `This is plain Text {"Test":"Encrypt"} ทดสอบ`
 	encryptedText, err := Encrypt(plainText, clientKeyStr003)
