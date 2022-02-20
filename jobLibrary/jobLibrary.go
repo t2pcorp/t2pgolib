@@ -12,7 +12,7 @@ import (
     // "github.com/aws/aws-sdk-go/aws/credentials"
     "github.com/aws/aws-sdk-go/aws/session"
     "github.com/aws/aws-sdk-go/service/cloudwatch"
-	"gitlab.t2p.co.th/central-library/t2plib/config"
+	// "gitlab.t2p.co.th/central-library/t2plib/config"
 )
 
 type credentials struct {
@@ -29,7 +29,7 @@ type JobLibrary struct {
 	JobConfig               JobConfig
 	JobExecuteInfo          JobExecuteInfo
 	JobUserPassword 		credentials
-	env                     string
+	Env                     string
 }
 
 type JobConfig struct {
@@ -68,10 +68,11 @@ type JobExecuteInfo struct {
 
 var user = credentials{}
 
-func (job *JobLibrary) Init() *JobLibrary {
+func (job *JobLibrary) Init(env string) *JobLibrary {
 	job.JobConfig.TimeZone = "Asia/Bangkok"
 	job.JobConfig.AdditionCondition.Success = true
 	job.JobExecuteInfo.Success = true
+	job.Env = env
 	return job
 }
 
@@ -300,7 +301,7 @@ func GetEnvUrl(env string) string {
 }
 
 func GetToken(job *JobLibrary) string{
-	env := config.EnvName
+	env := job.Env
 	urlEnv := GetEnvUrl(env)
 	var jsonData = []byte(fmt.Sprintf(`{
 		"email": "%s",
@@ -333,7 +334,7 @@ func (j *JobLibrary) GetJobActiveStatus() string{
     }
 	
 	bearer := "Bearer " + GetToken(j)
-	env := config.EnvName
+	env := job.Env
 	urlEnv := GetEnvUrl(env)
     url := urlEnv + "/api/Job/getJobStatus/" + j.JobConfig.Domain + "/" + j.JobConfig.JobID
     request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
@@ -368,7 +369,7 @@ func (j *JobLibrary) UpdateJobStatus(msg ...string) {
     }
 
 	bearer := "Bearer " + GetToken(j)
-	env := config.EnvName
+	env := job.Env
 	urlEnv := GetEnvUrl(env)
     url := urlEnv + "/api/Job/updateJobStatus"
     request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
@@ -400,7 +401,7 @@ func (j *JobLibrary) UpdateJobRunningStatus() {
     }
 
 	bearer := "Bearer " + GetToken(j)
-	env := config.EnvName
+	env := job.Env
 	urlEnv := GetEnvUrl(env)
     url := urlEnv + "/api/Job/updateJobRunningStatus/" + j.JobConfig.Domain + "/" + j.JobConfig.JobID
     request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
