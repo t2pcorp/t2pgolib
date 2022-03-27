@@ -294,7 +294,7 @@ func GetEnvUrl(env string) string {
 	if env == "SIT" {
 		url = "https://sit-job-api.t2p.co.th"
 	}
-	if env == "TEST" {
+	if env == "UAT" {
 		url = "https://test-job-api.t2p.co.th"
 	}
 	return url
@@ -320,6 +320,9 @@ func GetToken(job *JobLibrary) string{
 	body, _ := ioutil.ReadAll(response.Body)
 	var login map[string]interface{}
     json.Unmarshal([]byte(body), &login)
+	if login["success"] == false {
+		panic(login["message"])
+	}
 	return login["token"].(string)
 }
 
