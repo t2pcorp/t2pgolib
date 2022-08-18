@@ -314,14 +314,16 @@ func GetToken(job *JobLibrary) string{
 	response, err := client.Do(request)
 	defer response.Body.Close()
 	if err != nil {
-		panic(err)
+		fmt.Println("Login API doRequest Error : ", err)
+		return ""
 	}
 
 	body, _ := ioutil.ReadAll(response.Body)
 	var login map[string]interface{}
     json.Unmarshal([]byte(body), &login)
 	if login["success"] == false {
-		panic(login["message"])
+		fmt.Println("Login API Error : ", login["message")
+		return ""
 	}
 	return login["token"].(string)
 }
@@ -348,7 +350,8 @@ func (j *JobLibrary) GetJobActiveStatus() string{
 	response, err := client.Do(request)
 	defer response.Body.Close()
 	if err != nil {
-		panic(err)
+		fmt.Println("GetJobActiveStatus Error : ", err)
+		return "Y"
 	}
 
 	data, _ := ioutil.ReadAll(response.Body)
@@ -383,7 +386,8 @@ func (j *JobLibrary) UpdateJobStatus(msg ...string) {
 	response, err := client.Do(request)
 	defer response.Body.Close()
 	if err != nil {
-		panic(err)
+		fmt.Println("Update Job Status Error : ", err)
+		return
 	}
 
 	data, _ := ioutil.ReadAll(response.Body)
@@ -415,7 +419,8 @@ func (j *JobLibrary) UpdateJobRunningStatus() {
 	response, err := client.Do(request)
 	defer response.Body.Close()
 	if err != nil {
-		panic(err)
+		fmt.Println("Login API doRequest Error : ", err)
+		// panic(err)
 	}
 }
 
