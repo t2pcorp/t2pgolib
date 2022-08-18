@@ -322,7 +322,7 @@ func GetToken(job *JobLibrary) string{
 	var login map[string]interface{}
     json.Unmarshal([]byte(body), &login)
 	if login["success"] == false {
-		fmt.Println("Login API Error : ", login["message")
+		fmt.Println("Login API Error : ", login["message"])
 		return ""
 	}
 	return login["token"].(string)
