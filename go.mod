@@ -10,7 +10,6 @@ require (
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.7.0
-	gitlab.t2p.co.th/central-library/t2plib v1.0.20
 	go.elastic.co/ecslogrus v1.0.0
 	gopkg.in/go-playground/assert.v1 v1.2.1
 )
