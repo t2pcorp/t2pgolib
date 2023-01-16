@@ -12,8 +12,6 @@ import (
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/rifflock/lfshook"
 	log "github.com/sirupsen/logrus"
-	"gitlab.t2p.co.th/central-library/t2plib/config"
-	"gitlab.t2p.co.th/central-library/t2plib/util"
 	"go.elastic.co/ecslogrus"
 )
 
@@ -52,7 +50,7 @@ type LoggerHandle struct {
 	logInfo *t2pLogInfo
 }
 
-func New(serviceName string, logPathPrefix ...string) *LoggerHandle {
+func New(serviceName string, env string, logPathPrefix ...string) *LoggerHandle {
 
 	if logHandle != nil {
 		return logHandle
@@ -67,8 +65,8 @@ func New(serviceName string, logPathPrefix ...string) *LoggerHandle {
 		servicename: serviceName,
 	}
 
-	info.environment = config.EnvName
-	log := newLogger(info, prefix)
+	info.environment = env
+	log := newLogger(info, env, prefix)
 	logHandle = &LoggerHandle{
 		log:     log,
 		logInfo: info,
@@ -77,7 +75,7 @@ func New(serviceName string, logPathPrefix ...string) *LoggerHandle {
 	return logHandle
 }
 
-func newLogger(info *t2pLogInfo, prefix string) *log.Logger {
+func newLogger(info *t2pLogInfo, env string, prefix string) *log.Logger {
 	if loginstance == nil {
 		loginstance = log.New()
 	}
@@ -115,7 +113,7 @@ func newLogger(info *t2pLogInfo, prefix string) *log.Logger {
 		if exists("/logbeat") {
 			path := fmt.Sprintf("/logbeat/%v.log", info.servicename)
 			if prefix != "" {
-				if !strings.Contains(util.SERVE_DEV+util.SERVE_PRD+util.SERVE_UAT+util.SERVE_SIT+util.SERVE_PRE, config.EnvName) {
+				if !strings.Contains(`DEVELOP`+`PRODUCTION`+`UAT`+`SIT`+`PRE_PRODUCTION`, env) {
 					path = fmt.Sprintf("%v/%v.log", prefix, info.servicename)
 				}
 			}

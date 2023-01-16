@@ -10,7 +10,7 @@ import (
 
 func TestSimpleLogger(t *testing.T) {
 	// ------------INIT--------------------
-	logger := New("PROJECTKEY")
+	logger := New("PROJECTKEY", "LOCAL")
 
 	logger.SetPathURI("/hello")                                // Log for where api route is calling from
 	logger.SetAPIKey("aosidufpaisudfojasdofijapsodfijapsdjfa") //Log for what API key is used [Masked befor log]
@@ -30,7 +30,7 @@ func TestSimpleLogger(t *testing.T) {
 // v0.0.0-20221025-db424b6f
 func TestLogger(t *testing.T) {
 	//init logger
-	logger := New("PROJECTKEY", fmt.Sprintf("%vlogbeat%vlog", string(os.PathSeparator), string(os.PathSeparator))) // path params not work if env. are DEVELOP /UAT /PRODUCTION
+	logger := New("PROJECTKEY", "LOCA", fmt.Sprintf("%vlogbeat%vlog", string(os.PathSeparator), string(os.PathSeparator))) // path params not work if env. are DEVELOP /UAT /PRODUCTION
 
 	//set essential information dot function
 	logger.SetPathURI("/hello").SetAPIKey("aosidufpaisudfojasdofijapsodfijapsdjfa").SetToken("TOKEN_STRING").SetSpanID("SPANID").SetTraceID("TRACEID")
@@ -57,7 +57,7 @@ func TestLogger(t *testing.T) {
 
 	// Only works if env. not equal DEVELOP, SIT, UAT, PRODUCTION Default Value is always "/logbeat"
 	customlogpathPrefix := fmt.Sprintf("%vcustom%vlog", string(os.PathSeparator), string(os.PathSeparator))
-	logger2 := New("PROJECTKEY", customlogpathPrefix)
+	logger2 := New("PROJECTKEY", "LOCAL", customlogpathPrefix)
 	logger2.SetToken("xxxxxxxxxxxxx")
 }
 
