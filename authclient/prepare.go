@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/go-resty/resty/v2"
 )
 
 type meta struct {
@@ -96,6 +98,39 @@ func GenerateTokenTypeH(requestData string, key string, dtNowWithTimezone time.T
 		return ``, ``, fmt.Errorf("%v", reqObj["meta"]["responseMessage"])
 	} else {
 		return fmt.Sprintf("%v", reqObj["data"]["header"]), fmt.Sprintf("%v", reqObj["data"]["body"]), nil
+	}
+}
+
+// RequestTokenTypeC use for Host to Host request short life time 60 secconds
+// params: tokenReferenceData type: string description: short reference for tracing if needed
+// params: key type: string description: key content get from T2P
+// params: dtNowWithTimezone type: time.Time description: current date time with server time zone eg. "Asia/Bangkok"
+// params: authUrl type: string description: T2P authen server URL (UAT) `https://test-api-authen.t2p.co.th/authen/v1/clientToken/generate`, (PROD) `https://api-authen.t2p.co.th/authen/v1/clientToken/generate`
+func RequestTokenTypeC(tokenReferenceData string, key string, dtNowWithTimezone time.Time, authUrl string) (string, error) {
+	header, requestBody, err := GenerateTokenTypeH(tokenReferenceData, key, dtNowWithTimezone, true)
+	if err != nil {
+		return ``, err
+	}
+
+	client := resty.New()
+	resp, err := client.SetTimeout(5*time.Second).R().
+		SetHeader("Content-Type", "application/json").
+		SetHeader("Authorization", fmt.Sprintf("Basic %v", header)).
+		SetBody([]byte(requestBody)).
+		Post(authUrl)
+
+	if resp.StatusCode() != 200 {
+		return ``, fmt.Errorf("request for client token failed: %v", err.Error())
+	}
+	body := string(resp.Body())
+
+	reqObj := make(map[string]map[string]interface{})
+	json.Unmarshal([]byte(body), &reqObj)
+
+	if fmt.Sprintf("%v", reqObj["meta"]["responseCode"]) != "1000" {
+		return ``, fmt.Errorf("%v", reqObj["meta"]["responseMessage"])
+	} else {
+		return fmt.Sprintf("%v", reqObj["data"]["authToken"]), nil
 	}
 }
 

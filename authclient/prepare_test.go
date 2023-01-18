@@ -35,23 +35,24 @@ func Test_GenerateTokenTypeH(t *testing.T) {
 
 func Test_GenerateTokenTypeC(t *testing.T) {
 
-	// Prepare Request Token (Client)
 	locat, _ := time.LoadLocation("Asia/Bangkok")
 	currentunix := time.Now().In(locat)
-	bodyStr := `{"refcode": "CLIENIT00001002"}`
-
-	// Generate token type H
-	header, requestBody, err := GenerateTokenTypeH(bodyStr, clientKeyStr003, currentunix, true)
-	if err != nil {
-		fmt.Println(err)
-	}
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Gernerate Client Token Type C (Call API on partner host to t2p authen host)
+	bodyStr := `{"refcodeOfToken": "CLIENIT00001002"}`
 	tokenUrl := `https://test-api-authen.t2p.co.th/authen/v1/clientToken/generate`
 
-	var jsonStr = []byte(requestBody)
+	tokenTypeC, err := RequestTokenTypeC(bodyStr, clientKeyStr003, currentunix, tokenUrl)
+
+	if err != nil {
+		fmt.Println("request token error:", err)
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	// Test Use Token (Use Token on T2P resource server)
+	tokenUrl = `https://test-api-authen.t2p.co.th/authen/v1/clientToken/testClientToken`
+
+	jsonStr := []byte(`{"data":"Your REQUEST DATA From Mobile Client"}`)
 	req, _ := http.NewRequest("POST", tokenUrl, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Authorization", fmt.Sprintf("Basic %v", header))
+	req.Header.Set("Authorization", fmt.Sprintf("Basic %v", tokenTypeC))
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -61,35 +62,10 @@ func Test_GenerateTokenTypeC(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
+	fmt.Println("Type C token is:", tokenTypeC)
 	fmt.Println()
-	fmt.Println("generate Type C response Status:", resp.Status)
-	// fmt.Println("response Headers:", resp.Header)
-	body, _ := io.ReadAll(resp.Body)
-	fmt.Println("generate Type C  response Body:\n", string(body))
-	fmt.Println()
-
-	reqObj := make(map[string]map[string]string)
-	json.Unmarshal([]byte(body), &reqObj)
-
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Test Verify Token (Use Token on T2P resource server)
-	tokenUrl = `https://test-api-authen.t2p.co.th/authen/v1/clientToken/testClientToken`
-
-	jsonStr = []byte(`{"data":"ANY REQUEST DATA"}`)
-	req, _ = http.NewRequest("POST", tokenUrl, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Authorization", fmt.Sprintf("Basic %v", reqObj["data"]["authToken"]))
-	req.Header.Set("Content-Type", "application/json")
-
-	client = &http.Client{}
-	resp, err = client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-
 	fmt.Println("Test verify response Status:", resp.Status)
-	// fmt.Println("response Headers:", resp.Header)
-	body, _ = io.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	fmt.Println("Test verify response Body:\n", string(body))
 
 }
