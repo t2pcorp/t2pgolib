@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -16,33 +16,42 @@ func Test_GenerateTokenTypeH(t *testing.T) {
 
 	// Prepare Request Token (Client)
 	locat, _ := time.LoadLocation("Asia/Bangkok")
-	currentunix := time.Now().In(locat) 
+	currentunix := time.Now().In(locat)
 	bodyStr := `{"refcode": "CLIENIT00001002"}`
 
-	// Generate token type H 
-	header, requestBody, err := GenerateTokenTypeH(bodyStr,clientKeyStr003,currentunix,true)
-	fmt.Println("Header:", header)
-	fmt.Println("requestBody:", requestBody)
+	// Generate token type H
+	header, requestBody, err := GenerateTokenTypeH(bodyStr, clientKeyStr003, currentunix, true)
+	fmt.Println("Type H Header:\n", header)
+	fmt.Println()
+	fmt.Println("Type H requestBody:\n", requestBody)
+	fmt.Println()
 	fmt.Println("err:", err)
+
+	// Test Decrypt
+	fmt.Println()
+	decrypted, err := Decrypt(requestBody, serverKeyStr003)
+	fmt.Println("decrypted:", err, decrypted)
 }
 
 func Test_GenerateTokenTypeC(t *testing.T) {
 
 	// Prepare Request Token (Client)
 	locat, _ := time.LoadLocation("Asia/Bangkok")
-	currentunix := time.Now().In(locat) 
+	currentunix := time.Now().In(locat)
 	bodyStr := `{"refcode": "CLIENIT00001002"}`
 
-	// Generate token type H 
-	header, requestBody, err := GenerateTokenTypeH(bodyStr,clientKeyStr003,currentunix,true)
-
+	// Generate token type H
+	header, requestBody, err := GenerateTokenTypeH(bodyStr, clientKeyStr003, currentunix, true)
+	if err != nil {
+		fmt.Println(err)
+	}
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Gernerate Client Token Type C (Call API)
-	tokenUrl:=`https://test-api-authen.t2p.co.th/authen/v1/clientToken/generate`
+	// Gernerate Client Token Type C (Call API on partner host to t2p authen host)
+	tokenUrl := `https://test-api-authen.t2p.co.th/authen/v1/clientToken/generate`
 
 	var jsonStr = []byte(requestBody)
 	req, _ := http.NewRequest("POST", tokenUrl, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Authorization", fmt.Sprintf("Basic %v", reqObj["data"]["header"]))
+	req.Header.Set("Authorization", fmt.Sprintf("Basic %v", header))
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -52,17 +61,19 @@ func Test_GenerateTokenTypeC(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("response Status:", resp.Status)
+	fmt.Println()
+	fmt.Println("generate Type C response Status:", resp.Status)
 	// fmt.Println("response Headers:", resp.Header)
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("response Body:", string(body))
+	body, _ := io.ReadAll(resp.Body)
+	fmt.Println("generate Type C  response Body:\n", string(body))
+	fmt.Println()
 
-	reqObj = make(map[string]map[string]string)
+	reqObj := make(map[string]map[string]string)
 	json.Unmarshal([]byte(body), &reqObj)
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Verify Token (Use Token)
-	tokenUrl=`https://test-api-authen.t2p.co.th/authen/v1/clientToken/testClientToken`
+	// Test Verify Token (Use Token on T2P resource server)
+	tokenUrl = `https://test-api-authen.t2p.co.th/authen/v1/clientToken/testClientToken`
 
 	jsonStr = []byte(`{"data":"ANY REQUEST DATA"}`)
 	req, _ = http.NewRequest("POST", tokenUrl, bytes.NewBuffer(jsonStr))
@@ -76,20 +87,20 @@ func Test_GenerateTokenTypeC(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("response Status:", resp.Status)
+	fmt.Println("Test verify response Status:", resp.Status)
 	// fmt.Println("response Headers:", resp.Header)
-	body, _ = ioutil.ReadAll(resp.Body)
-	fmt.Println("response Body:", string(body))
+	body, _ = io.ReadAll(resp.Body)
+	fmt.Println("Test verify response Body:\n", string(body))
 
 }
 
 func Test_Hmac(t *testing.T) {
-	
+
 	plainText := `This is plain Text {"Test":"Encrypt"} ทดสอบ`
-	hmac,err := GenerateHMac(plainText, clientKeyStr003)
+	hmac, err := GenerateHMac(plainText, clientKeyStr003)
 	fmt.Println("Hmac: ", hmac, err)
 
-	verify,err := VerifyHMac(plainText, hmac, clientKeyStr003)
+	verify, err := VerifyHMac(plainText, hmac, clientKeyStr003)
 	fmt.Println("Verify: ", verify, err)
 
 	if !assert.Equal(t, verify, true) {
@@ -200,7 +211,6 @@ func Test_Prepare_Request_Should_Return_Correct_Header_And_Body_When_Not_Encrypt
 	assert.Equal(t, expected, r)
 }
 
-
 func Test_Function_HSGetToken(t *testing.T) {
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	//Client Prepare Request
@@ -270,7 +280,7 @@ func Test_Function_HSGetToken(t *testing.T) {
 
 	fmt.Println("response Status:", resp.Status)
 	// fmt.Println("response Headers:", resp.Header)
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	fmt.Println("response Body:", string(body))
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -294,6 +304,6 @@ func Test_Function_HSGetToken(t *testing.T) {
 
 	fmt.Println("response Status:", resp.Status)
 	// fmt.Println("response Headers:", resp.Header)
-	body, _ = ioutil.ReadAll(resp.Body)
+	body, _ = io.ReadAll(resp.Body)
 	fmt.Println("response Body:", string(body))
 }

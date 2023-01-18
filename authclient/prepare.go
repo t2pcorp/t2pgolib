@@ -54,7 +54,7 @@ type data struct {
 	Authorize  map[string][]string `json:"authorize,omitempty"`
 }
 
-//KeyInfor key infor to redis
+// KeyInfor key infor to redis
 type KeyInfor struct {
 	KeyContents       string              `json:"keyContents"`
 	KeyAuthorize      map[string][]string `json:"keyAuthorize"`
@@ -76,7 +76,7 @@ const (
 )
 
 // GenerateTokenTypeH use for Host to Host request short life time 60 secconds
-// params: requestData type: string description: string or json string to generate token type H with request data 
+// params: requestData type: string description: string or json string to generate token type H with request data
 // params: key type: string description: key content get from T2P
 // params: dtNowWithTimezone type: time.Time description: current date time with server time zone eg. "Asia/Bangkok"
 // params: isRequestDataEncrypt type: bool description: will requestData be encrypted or plaintext for secure use encrypt
@@ -88,14 +88,14 @@ func GenerateTokenTypeH(requestData string, key string, dtNowWithTimezone time.T
 	hashMapServerInfo["uri"] = "/authen/v1/clientToken/generate"
 	hashMapServerInfo["clientLibVersion"] = "1.0.0"
 
-	out:=PrepareRequest(hashMapServerInfo, requestData, key, isRequestDataEncrypt)
-	reqObj := make(map[string]map[string]string)
-	json.Unmarshal([]byte(requestInfo), &reqObj)
+	out := PrepareRequest(hashMapServerInfo, requestData, key, isRequestDataEncrypt)
+	reqObj := make(map[string]map[string]interface{})
+	json.Unmarshal([]byte(out), &reqObj)
 
-	if reqObj["meta"]["ResponseCode"] != "1000" {
-		return '','', errors.New(reqObj["meta"]["ResponseMessage"])
+	if fmt.Sprintf("%v", reqObj["meta"]["responseCode"]) != "1000" {
+		return ``, ``, fmt.Errorf("%v", reqObj["meta"]["responseMessage"])
 	} else {
-		return reqObj["data"]["header"],reqObj["data"]["body"],nil
+		return fmt.Sprintf("%v", reqObj["data"]["header"]), fmt.Sprintf("%v", reqObj["data"]["body"]), nil
 	}
 }
 
@@ -136,7 +136,7 @@ func makeRequestBody(hashInfo map[string]string, body string, isEncryptBody bool
 	return body, nil
 }
 
-//EncryptData encrypt text with key input
+// EncryptData encrypt text with key input
 func EncryptData(text string, key string) string {
 	ck, err := extractKey(key)
 	if err != nil {
@@ -149,7 +149,7 @@ func EncryptData(text string, key string) string {
 	return makeResponseEncryptData(1000, "Success", encText)
 }
 
-//DecryptData encrypt text with key input
+// DecryptData encrypt text with key input
 func DecryptData(text string, key string) string {
 	ck, err := extractKey(key)
 	if err != nil {
@@ -350,5 +350,5 @@ func VerifyHMac(message string, hMac string, key string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return newHMac == hMac , nil
+	return newHMac == hMac, nil
 }
