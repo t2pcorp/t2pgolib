@@ -12,6 +12,77 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func Test_GenerateTokenTypeH(t *testing.T) {
+
+	// Prepare Request Token (Client)
+	locat, _ := time.LoadLocation("Asia/Bangkok")
+	currentunix := time.Now().In(locat) 
+	bodyStr := `{"refcode": "CLIENIT00001002"}`
+
+	// Generate token type H 
+	header, requestBody, err := GenerateTokenTypeH(bodyStr,clientKeyStr003,currentunix,true)
+	fmt.Println("Header:", header)
+	fmt.Println("requestBody:", requestBody)
+	fmt.Println("err:", err)
+}
+
+func Test_GenerateTokenTypeC(t *testing.T) {
+
+	// Prepare Request Token (Client)
+	locat, _ := time.LoadLocation("Asia/Bangkok")
+	currentunix := time.Now().In(locat) 
+	bodyStr := `{"refcode": "CLIENIT00001002"}`
+
+	// Generate token type H 
+	header, requestBody, err := GenerateTokenTypeH(bodyStr,clientKeyStr003,currentunix,true)
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	// Gernerate Client Token Type C (Call API)
+	tokenUrl:=`https://test-api-authen.t2p.co.th/authen/v1/clientToken/generate`
+
+	var jsonStr = []byte(requestBody)
+	req, _ := http.NewRequest("POST", tokenUrl, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Authorization", fmt.Sprintf("Basic %v", reqObj["data"]["header"]))
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	fmt.Println("response Status:", resp.Status)
+	// fmt.Println("response Headers:", resp.Header)
+	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println("response Body:", string(body))
+
+	reqObj = make(map[string]map[string]string)
+	json.Unmarshal([]byte(body), &reqObj)
+
+	///////////////////////////////////////////////////////////////////////////////////////////////
+	// Verify Token (Use Token)
+	tokenUrl=`https://test-api-authen.t2p.co.th/authen/v1/clientToken/testClientToken`
+
+	jsonStr = []byte(`{"data":"ANY REQUEST DATA"}`)
+	req, _ = http.NewRequest("POST", tokenUrl, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Authorization", fmt.Sprintf("Basic %v", reqObj["data"]["authToken"]))
+	req.Header.Set("Content-Type", "application/json")
+
+	client = &http.Client{}
+	resp, err = client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	fmt.Println("response Status:", resp.Status)
+	// fmt.Println("response Headers:", resp.Header)
+	body, _ = ioutil.ReadAll(resp.Body)
+	fmt.Println("response Body:", string(body))
+
+}
+
 func Test_Hmac(t *testing.T) {
 	
 	plainText := `This is plain Text {"Test":"Encrypt"} ทดสอบ`
@@ -129,77 +200,6 @@ func Test_Prepare_Request_Should_Return_Correct_Header_And_Body_When_Not_Encrypt
 	assert.Equal(t, expected, r)
 }
 
-func Test_Prepare_GetToken(t *testing.T) {
-
-	// Prepare Request Token (Client)
-	locat, _ := time.LoadLocation("Asia/Bangkok")
-	currentunix := time.Now().In(locat)
-
-	hashMap := make(map[string]map[string]string)
-	hashMapServerInfo := make(map[string]string)
-	// json.Unmarshal(c.PostBody(), &hashMap)
-	hashMapServerInfo["timestamp"] = currentunix.Format(`20060102150405`)
-	hashMapServerInfo["tokenType"] = "H"
-	hashMapServerInfo["method"] = "POST"
-	hashMapServerInfo["uri"] = "/authen/v1/clientToken/generate"
-	hashMap["ServerInfo"] = hashMapServerInfo
-	bodyStr := "CLIENIT00001002"
-	requestInfo := PrepareRequest(hashMap["ServerInfo"], bodyStr, clientKeyStr003, true)
-	fmt.Println(requestInfo)
-
-	reqObj := make(map[string]map[string]string)
-	json.Unmarshal([]byte(requestInfo), &reqObj)
-
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Gernerate Client Token (Call API)
-	tokenUrl := `https://local-api-authen.t2p.co.th/authen/v1/clientToken/generate`
-	// tokenUrl=`https://local-dev-authen.t2p.co.th/authen/v1/clientToken/generate`
-	//tokenUrl=`https://test-api-authen.t2p.co.th/authen/v1/clientToken/generate`
-
-	var jsonStr = []byte(reqObj["data"]["body"])
-	req, _ := http.NewRequest("POST", tokenUrl, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Authorization", fmt.Sprintf("Basic %v", reqObj["data"]["header"]))
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-
-	fmt.Println("response Status:", resp.Status)
-	// fmt.Println("response Headers:", resp.Header)
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("response Body:", string(body))
-
-	reqObj = make(map[string]map[string]string)
-	json.Unmarshal([]byte(body), &reqObj)
-
-	///////////////////////////////////////////////////////////////////////////////////////////////
-	// Verify Token (Use Token)
-	tokenUrl = `https://local-api-authen.t2p.co.th/authen/v1/clientToken/testClientToken`
-	// tokenUrl=`https://local-dev-authen.t2p.co.th/authen/v1/clientToken/testClientToken`
-	//tokenUrl=`https://test-api-authen.t2p.co.th/authen/v1/clientToken/testClientToken`
-
-	jsonStr = []byte(`{"data":"ANY REQUEST DATA"}`)
-	req, _ = http.NewRequest("POST", tokenUrl, bytes.NewBuffer(jsonStr))
-	req.Header.Set("Authorization", fmt.Sprintf("Basic %v", reqObj["data"]["authToken"]))
-	req.Header.Set("Content-Type", "application/json")
-
-	client = &http.Client{}
-	resp, err = client.Do(req)
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
-
-	fmt.Println("response Status:", resp.Status)
-	// fmt.Println("response Headers:", resp.Header)
-	body, _ = ioutil.ReadAll(resp.Body)
-	fmt.Println("response Body:", string(body))
-
-}
 
 func Test_Function_HSGetToken(t *testing.T) {
 	///////////////////////////////////////////////////////////////////////////////////////////////
@@ -254,9 +254,7 @@ func Test_Function_HSGetToken(t *testing.T) {
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Gernerate Client Token (Call API)
-	tokenUrl := `https://local-api-authen.t2p.co.th/authen/v1/clientToken/testGenHSToken`
-	// tokenUrl=`https://local-dev-authen.t2p.co.th/authen/v1/clientToken/generate`
-	//tokenUrl=`https://test-api-authen.t2p.co.th/authen/v1/clientToken/generate`
+	tokenUrl := `https://test-api-authen.t2p.co.th/authen/v1/clientToken/generate`
 
 	var jsonStr = []byte(reqObj["data"]["body"])
 	req, _ := http.NewRequest("POST", tokenUrl, bytes.NewBuffer(jsonStr))
@@ -277,9 +275,7 @@ func Test_Function_HSGetToken(t *testing.T) {
 
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	// Verify Token (Use Token)
-	tokenUrl = `https://local-api-authen.t2p.co.th/authen/v1/clientToken/testClientToken`
-	// tokenUrl=`https://local-dev-authen.t2p.co.th/authen/v1/clientToken/testClientToken`
-	//tokenUrl=`https://test-api-authen.t2p.co.th/authen/v1/clientToken/testClientToken`
+	tokenUrl = `https://test-api-authen.t2p.co.th/authen/v1/clientToken/testClientToken`
 
 	reqObj = make(map[string]map[string]string)
 	json.Unmarshal(body, &reqObj)

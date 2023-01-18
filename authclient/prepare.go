@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 )
 
 type meta struct {
@@ -73,6 +74,30 @@ const (
 	ErrFatal                 = "fatal error"
 	ErrInvalidHeaderSignatur = "invalid header signature"
 )
+
+// GenerateTokenTypeH use for Host to Host request short life time 60 secconds
+// params: requestData type: string description: string or json string to generate token type H with request data 
+// params: key type: string description: key content get from T2P
+// params: dtNowWithTimezone type: time.Time description: current date time with server time zone eg. "Asia/Bangkok"
+// params: isRequestDataEncrypt type: bool description: will requestData be encrypted or plaintext for secure use encrypt
+func GenerateTokenTypeH(requestData string, key string, dtNowWithTimezone time.Time, isRequestDataEncrypt bool) (string, string, error) {
+	hashMapServerInfo := make(map[string]string)
+	hashMapServerInfo["timestamp"] = dtNowWithTimezone.Format(`20060102150405`)
+	hashMapServerInfo["tokenType"] = "H"
+	hashMapServerInfo["method"] = "POST"
+	hashMapServerInfo["uri"] = "/authen/v1/clientToken/generate"
+	hashMapServerInfo["clientLibVersion"] = "1.0.0"
+
+	out:=PrepareRequest(hashMapServerInfo, requestData, key, isRequestDataEncrypt)
+	reqObj := make(map[string]map[string]string)
+	json.Unmarshal([]byte(requestInfo), &reqObj)
+
+	if reqObj["meta"]["ResponseCode"] != "1000" {
+		return '','', errors.New(reqObj["meta"]["ResponseMessage"])
+	} else {
+		return reqObj["data"]["header"],reqObj["data"]["body"],nil
+	}
+}
 
 // PrepareRequest is a function for preparing requests to call APIs
 func PrepareRequest(hashInfo map[string]string, body, key string, isEncryptBody bool) string {
@@ -175,10 +200,9 @@ func encryptMessage(body, publicKey string) (string, error) {
 func createHeaderSignature(hashInfo map[string]string, body string, ck clientKey) (string, error) {
 
 	_, ok1 := hashInfo["method"]
-	_, ok2 := hashInfo["uri"]
 	timestamp, ok3 := hashInfo["timestamp"]
 
-	if !(ok1 && ok2 && ok3) {
+	if !(ok1 && ok3) {
 		return "", errors.New("invalid header info data")
 	}
 
